@@ -30,3 +30,12 @@ database (never production):
 ```bash
 psql "$DATABASE_URL" -f supabase/tests/rls_test.sql
 ```
+
+## Phone sign-in (one-time setup in the dashboard)
+
+Jewellers sign in with an SMS code. In **Authentication → Sign In / Providers → Phone**:
+
+1. Turn on **Enable phone provider** and choose an SMS provider (Twilio, MessageBird, Textlocal
+   or Vonage) with its credentials. Indian SMS needs a DLT-registered sender and template.
+2. For development, add **test phone numbers** with fixed codes (e.g. `919999900001=123456`)
+   so you can sign in without sending real SMS.

@@ -45,6 +45,26 @@ do $$ begin
   end;
 end $$;
 
+-- create_item writes item, HUIDs and reports together, under the caller's RLS.
+do $$
+declare v_id uuid;
+begin
+  v_id := public.create_item('11111111-0000-0000-0000-000000000001', 'Jhumka pair', null, 'gold', 22::smallint, 12.4, null, null,
+                             array['zz99yy', 'XX88WW'], '[{"lab": "IGI", "report_number": "LG12345678"}]');
+  if (select count(*) from public.item_huids where item_id = v_id) <> 2
+     or (select huid from public.item_huids where item_id = v_id order by huid limit 1) <> 'XX88WW'
+     or (select status from public.grading_reports where item_id = v_id) <> 'uploaded' then
+    raise exception 'FAIL: create_item did not write children';
+  end if;
+  -- A bad HUID rolls back the whole item.
+  begin
+    perform public.create_item('11111111-0000-0000-0000-000000000001', 'Bad ring', null, 'gold', 22::smallint, 3, null, null, array['bad'], '[]');
+    raise exception 'FAIL: bad HUID accepted';
+  exception when check_violation then null;
+  end;
+  if exists (select 1 from public.items where title = 'Bad ring') then raise exception 'FAIL: partial item left behind'; end if;
+end $$;
+
 -- A pending shop cannot issue passports.
 do $$ begin
   begin
@@ -90,6 +110,14 @@ do $$ begin
     insert into public.items (shop_id, title, metal, karat, gross_weight_g)
     values ('11111111-0000-0000-0000-000000000001', 'Fake ring', 'gold', 22, 5);
     raise exception 'FAIL: outsider wrote into another shop';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+do $$ begin
+  begin
+    perform public.create_item('11111111-0000-0000-0000-000000000001', 'Sneaky', null, 'silver', null, 5, null, null, '{}', '[]');
+    raise exception 'FAIL: outsider used create_item on another shop';
   exception when insufficient_privilege then null;
   end;
 end $$;
