@@ -39,3 +39,14 @@ Jewellers sign in with an SMS code. In **Authentication → Sign In / Providers 
    or Vonage) with its credentials. Indian SMS needs a DLT-registered sender and template.
 2. For development, add **test phone numbers** with fixed codes (e.g. `919999900001=123456`)
    so you can sign in without sending real SMS.
+
+## Email sign-in
+
+The login page also offers email with a one-time code.
+
+1. Authentication → Sign In / Providers → Email: enabled (it is by default).
+2. Authentication → Emails → **Magic Link** template: add the code to the body, for example
+   `<p>Your GemLedger sign-in code is <strong>{{ .Token }}</strong></p>`.
+   Without `{{ .Token }}` the email only has a link, and the login page asks for a code.
+3. The built-in mailer only sends a few emails an hour. Before the pilot, set up custom SMTP
+   (Authentication → Emails → SMTP settings), for example with Resend, Brevo or Amazon SES.
