@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 
 /** Only allow redirects back into our own portal. */
 function safeNext(next: string | null) {
-  return next && next.startsWith("/portal") ? next : "/portal";
+  return next && /^\/(portal|admin)(\/|$)/.test(next) ? next : "/portal";
 }
 
 export function LoginForm() {

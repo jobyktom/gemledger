@@ -29,6 +29,10 @@ do $$ begin
   end;
 end $$;
 
+do $$ begin
+  if public.am_platform_admin() then raise exception 'FAIL: jeweller is admin'; end if;
+end $$;
+
 -- A adds an item with a HUID.
 insert into public.items (id, shop_id, title, metal, karat, gross_weight_g, price_paise)
 values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'Temple necklace', 'gold', 22, 32.5, 18500000);
@@ -87,11 +91,22 @@ end $$;
 insert into public.grading_reports (item_id, shop_id, lab, report_number)
 values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'GIA', '1234567890');
 
--- Admin approves the shop (service role).
+-- Jeweller B is made a platform admin, sees the pending shop and approves it.
 reset role;
-set local role service_role;
-select set_config('request.jwt.claim.role', 'service_role', true);
+insert into private.platform_admins (user_id) values ('bbbbbbbb-0000-0000-0000-000000000002');
+select pg_temp.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+do $$ begin
+  if not public.am_platform_admin() then raise exception 'FAIL: admin not recognised'; end if;
+  if not exists (select 1 from public.shops where id = '11111111-0000-0000-0000-000000000001') then
+    raise exception 'FAIL: admin cannot see pending shop'; end if;
+end $$;
 update public.shops set status = 'approved' where id = '11111111-0000-0000-0000-000000000001';
+-- Admin rights are for reviewing shops only, not reading their stock.
+do $$ begin
+  if exists (select 1 from public.items) then raise exception 'FAIL: admin can read shop items'; end if;
+end $$;
+reset role;
+delete from private.platform_admins;
 
 -- Now A can issue.
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000001');

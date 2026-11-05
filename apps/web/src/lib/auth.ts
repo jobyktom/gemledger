@@ -43,3 +43,12 @@ export async function requireMyShop(): Promise<MyShop> {
   if (!shop) redirect("/portal/shop/new");
   return shop;
 }
+
+/** True when the signed-in user is GemLedger staff. */
+export const isPlatformAdmin = cache(async (): Promise<boolean> => {
+  await requireUserId();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("am_platform_admin");
+  if (error) throw error;
+  return data === true;
+});

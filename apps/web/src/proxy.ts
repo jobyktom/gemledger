@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims?.sub);
 
-  if (!signedIn && request.nextUrl.pathname.startsWith("/portal")) {
+  if (!signedIn && (request.nextUrl.pathname.startsWith("/portal") || request.nextUrl.pathname.startsWith("/admin"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
