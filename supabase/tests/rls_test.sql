@@ -34,6 +34,17 @@ insert into public.items (id, shop_id, title, metal, karat, gross_weight_g, pric
 values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'Temple necklace', 'gold', 22, 32.5, 18500000);
 insert into public.item_huids (item_id, shop_id, huid) values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'AB12CD');
 
+-- An item cannot be moved to another shop, even one the user also belongs to.
+insert into public.shops (id, name, city, state) values ('11111111-0000-0000-0000-000000000002', 'Asha Gold (branch)', 'Thrissur', 'Kerala');
+do $$ begin
+  begin
+    update public.items set shop_id = '11111111-0000-0000-0000-000000000002' where id = '22222222-0000-0000-0000-000000000001';
+    raise exception 'FAIL: item moved between shops';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+end $$;
+
 -- A pending shop cannot issue passports.
 do $$ begin
   begin
