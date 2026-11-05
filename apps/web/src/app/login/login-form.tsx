@@ -5,12 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 import { Button, Field, FormError, Input } from "@/components/ui";
+import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/client";
 
-/** Only allow redirects back into our own portal. */
-function safeNext(next: string | null) {
-  return next && /^\/(portal|admin)(\/|$)/.test(next) ? next : "/portal";
-}
 
 type Method = "phone" | "email";
 const EmailAddress = z.email("Enter a valid email address").transform((s) => s.trim().toLowerCase());
@@ -24,7 +21,9 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | undefined>(
+    params.get("error") === "link" ? "That sign-in link has expired or was opened in another browser. Request a new one." : undefined,
+  );
   const [busy, setBusy] = useState(false);
 
   async function sendCode(e: React.FormEvent) {
@@ -44,7 +43,10 @@ export function LoginForm() {
       if (!parsed.success) return setError(parsed.error.issues[0]?.message);
       target = parsed.data;
       setBusy(true);
-      result = await auth.signInWithOtp({ email: target });
+      // The default Supabase email holds a sign-in link, not a code.
+      const callback = new URL("/auth/callback", window.location.origin);
+      callback.searchParams.set("next", safeNext(params.get("next")));
+      result = await auth.signInWithOtp({ email: target, options: { emailRedirectTo: callback.toString() } });
     }
     setBusy(false);
     if (result.error) return setError(result.error.message);
@@ -58,10 +60,7 @@ export function LoginForm() {
     setBusy(true);
     const auth = createClient().auth;
     const token = code.trim();
-    const { error } =
-      method === "phone"
-        ? await auth.verifyOtp({ phone: sentTo, token, type: "sms" })
-        : await auth.verifyOtp({ email: sentTo, token, type: "email" });
+    const { error } = await auth.verifyOtp({ phone: sentTo, token, type: "sms" });
     setBusy(false);
     if (error) return setError("That code didn't work. Check it, or request a new one.");
     router.replace(safeNext(params.get("next")));
@@ -116,14 +115,29 @@ export function LoginForm() {
           </Field>
         )}
         <FormError message={error} />
-        <Button disabled={busy}>{busy ? "Sending…" : "Send code"}</Button>
+        <Button disabled={busy}>{busy ? "Sending…" : method === "phone" ? "Send code" : "Email me a sign-in link"}</Button>
       </form>
+    );
+  }
+
+  if (method === "email") {
+    return (
+      <div className="flex flex-col gap-4">
+        <p>
+          We sent a sign-in link to <strong>{sentTo}</strong>. Open it on this device, in this browser, to finish signing
+          in. The link works once and expires in an hour.
+        </p>
+        <p className="text-sm text-zinc-500">No email? Check your spam folder, or wait a minute and try again.</p>
+        <Button type="button" variant="secondary" onClick={() => { setStep("address"); setError(undefined); }}>
+          Use a different email
+        </Button>
+      </div>
     );
   }
 
   return (
     <form onSubmit={verify} className="flex flex-col gap-4">
-      <Field label={`Code sent to ${method === "phone" ? sentTo.replace("+91", "+91 ") : sentTo}`}>
+      <Field label={`Code sent to ${sentTo.replace("+91", "+91 ")}`}>
         <Input
           inputMode="numeric"
           autoComplete="one-time-code"
@@ -147,7 +161,7 @@ export function LoginForm() {
           setError(undefined);
         }}
       >
-        {method === "phone" ? "Use a different number" : "Use a different email"}
+        Use a different number
       </Button>
     </form>
   );

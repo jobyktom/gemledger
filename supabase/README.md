@@ -50,3 +50,10 @@ The login page also offers email with a one-time code.
    Without `{{ .Token }}` the email only has a link, and the login page asks for a code.
 3. The built-in mailer only sends a few emails an hour. Before the pilot, set up custom SMTP
    (Authentication → Emails → SMTP settings), for example with Resend, Brevo or Amazon SES.
+
+### Without custom SMTP
+
+Supabase locks the email templates until custom SMTP is set up, and the default
+Magic Link email has a link but no code. The login page therefore sends a sign-in
+link that lands on `/auth/callback`. Add `http://localhost:3000/**` (and the live
+domain later) under Authentication → URL Configuration → Redirect URLs.

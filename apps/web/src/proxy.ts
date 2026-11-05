@@ -6,6 +6,13 @@ import { NextResponse, type NextRequest } from "next/server";
  * visitors out of the jeweller portal.
  */
 export async function proxy(request: NextRequest) {
+  // If Supabase falls back to the Site URL, an email link lands on "/?code=…".
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
