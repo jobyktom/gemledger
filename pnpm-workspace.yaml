@@ -10,3 +10,5 @@ minimumReleaseAge: 0
 strictDepBuilds: false
 ignoredBuiltDependencies:
   - esbuild
+# Flat node_modules so the Next.js standalone build can be copied out of the monorepo.
+nodeLinker: hoisted
