@@ -2,7 +2,7 @@
 -- (see supabase/README.md). Raises an exception on the first failure.
 \set ON_ERROR_STOP 1
 begin;
-insert into auth.users values ('aaaaaaaa-0000-0000-0000-000000000001'), ('bbbbbbbb-0000-0000-0000-000000000002');
+insert into auth.users (id) values ('aaaaaaaa-0000-0000-0000-000000000001'), ('bbbbbbbb-0000-0000-0000-000000000002');
 
 create function pg_temp.as_user(u text) returns void language plpgsql as $$
 begin
