@@ -328,6 +328,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      am_platform_admin: { Args: never; Returns: boolean }
       create_item: {
         Args: {
           p_description: string | null

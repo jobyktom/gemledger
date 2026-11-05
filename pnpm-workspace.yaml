@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Hostinger builds with a newer pnpm (11) through corepack. Don't fail on the
+# version pin, and keep pnpm 10's lockfile valid there (pnpm 11 otherwise
+# rejects packages published in the last day).
+pmOnFail: ignore
+minimumReleaseAge: 0
+strictDepBuilds: false
+ignoredBuiltDependencies:
+  - esbuild

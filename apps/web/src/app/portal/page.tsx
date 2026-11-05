@@ -84,7 +84,7 @@ export default async function PortalHome({
                   <div className="size-14 shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800" />
                 )}
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{item.title}</span>
+                  <Link href={`/portal/items/${item.id}`} className="truncate font-medium hover:underline">{item.title}</Link>
                   <span className="text-sm text-zinc-500">
                     {item.metal === "gold" && item.karat ? `${KARAT_LABEL[item.karat] ?? `${item.karat}K`} gold` : item.metal}
                     {" · "}
