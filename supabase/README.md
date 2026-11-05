@@ -1,6 +1,8 @@
 # Database (Supabase)
 
-Hosted project: `gemledger-mumbai` (region `ap-south-1`, Mumbai), so Indian customer data stays in India.
+Hosted project: `gemledger-mumbai` (ref `rikpwgvbnrbyaolfduug`, region `ap-south-1` Mumbai), so Indian customer data stays in India. Both migrations below are already applied there.
+
+The free plan pauses a project after a week without activity, so `.github/workflows/supabase-keepalive.yml` runs a tiny read-only query twice a week. Delete it once we go live on a paid plan.
 
 ## Migrations
 

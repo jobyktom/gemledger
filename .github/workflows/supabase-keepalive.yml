@@ -1,0 +1,26 @@
+# Supabase pauses free-tier projects after 7+ days without activity.
+# This runs a small read-only database query twice a week to keep it awake.
+# Temporary: delete this workflow once we go live on a paid Supabase plan.
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: "17 3 * * 1,4" # Mon and Thu, 03:17 UTC
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      # The publishable key is designed to be public (it ships in the web app);
+      # row-level security protects the data. Override with repo variables if rotated.
+      SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://rikpwgvbnrbyaolfduug.supabase.co' }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_XI4VhprNlSsjkjHlZc-R0g_3ETdM7n4' }}
+    steps:
+      - name: Query the database
+        run: |
+          status=$(curl -sS -o response.json -w '%{http_code}' \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/get_public_passport" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"p_public_id":"keepalive0000000000000"}')
+          echo "HTTP $status"; cat response.json; echo
+          test "$status" = "200"
