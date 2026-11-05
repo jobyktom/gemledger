@@ -1,0 +1,30 @@
+# Database (Supabase)
+
+Hosted project: `gemledger-mumbai` (region `ap-south-1`, Mumbai), so Indian customer data stays in India.
+
+## Migrations
+
+SQL files in `migrations/` are applied in name order. The first one creates:
+
+- `shops`, `shop_members`: jewellers and their staff (owner, manager, staff). New shops start
+  `pending`; only GemLedger admins (service role) can approve them.
+- `items`, `item_huids`, `grading_reports`, `documents`: the jewellery and its evidence.
+- `passports`: QR-linked passports with an unguessable 22-character `public_id`. Only approved
+  shops can issue them, and each item has at most one live passport.
+- `get_public_passport(public_id)`: the only way the public verify page reads data. It returns
+  shop, item basics, HUIDs and report statuses, never price or owner.
+- A private `item-files` storage bucket; files live under `<shop_id>/<item_id>/…`.
+
+Row-level security is on for every table: a user only sees rows for shops they belong to.
+Shops can record lab reports as `uploaded` but cannot mark them `lab_matched`; only the
+server-side lab connector can.
+
+## Tests
+
+`tests/rls_test.sql` checks tenant isolation, shop approval, self-verification and the public
+verify function. It runs inside a transaction and rolls back. Run it against a local or branch
+database (never production):
+
+```bash
+psql "$DATABASE_URL" -f supabase/tests/rls_test.sql
+```
