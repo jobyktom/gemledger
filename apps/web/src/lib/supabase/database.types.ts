@@ -328,6 +328,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_item: {
+        Args: {
+          p_description: string | null
+          p_gross_weight_g: number
+          p_huids?: string[]
+          p_karat: number | null
+          p_metal: Database["public"]["Enums"]["metal"]
+          p_net_weight_g: number | null
+          p_price_paise: number | null
+          p_reports?: Json
+          p_shop_id: string
+          p_title: string
+        }
+        Returns: string
+      }
       get_public_passport: {
         Args: { p_public_id: string }
         Returns: {

@@ -6,6 +6,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Public values (they ship in the browser bundle); same as apps/web/.env.example.
+      NEXT_PUBLIC_SUPABASE_URL: https://rikpwgvbnrbyaolfduug.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_XI4VhprNlSsjkjHlZc-R0g_3ETdM7n4
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -23,7 +23,9 @@ export default function Home() {
           ))}
         </ul>
       </section>
-      <p className="text-sm text-zinc-500">Phase 1 scaffold. The jeweller portal and customer wallet come next.</p>
+      <a href="/portal" className="self-start rounded-lg bg-amber-700 px-4 py-2.5 font-medium text-white hover:bg-amber-800">
+        Jeweller sign in
+      </a>
     </main>
   );
 }
