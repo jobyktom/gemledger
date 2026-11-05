@@ -65,14 +65,18 @@ export async function createItem(input: ItemFormInput): Promise<CreateItemResult
   if (!parsed.success) {
     const map: Record<string, keyof ItemFormInput> = {
       title: "title", description: "description", metal: "metal", karat: "karat",
-      grossWeightGrams: "grossWeight", netWeightGrams: "netWeight",
+      grossWeightGrams: "grossWeight", netWeightGrams: "netWeight", huids: "huids",
     };
     for (const issue of parsed.error.issues) {
       const key = map[String(issue.path[0])];
       if (key) fieldErrors[key] ??= issue.message;
     }
   }
-  if (!parsed.success || Object.keys(fieldErrors).length) return { ok: false, fieldErrors };
+  if (!parsed.success || Object.keys(fieldErrors).length) {
+    // Never fail silently: if an issue has no matching field, say so generally.
+    const error = Object.keys(fieldErrors).length ? undefined : "Please check the details and try again.";
+    return { ok: false, fieldErrors, error };
+  }
 
   const item = parsed.data;
   const supabase = await createClient();

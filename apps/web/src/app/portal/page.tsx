@@ -2,24 +2,31 @@ import Link from "next/link";
 import { requireMyShop } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+const PAGE_SIZE = 50;
 const KARAT_LABEL: Record<number, string> = { 24: "24K", 23: "23K", 22: "22K", 20: "20K", 18: "18K", 14: "14K" };
 
 export default async function PortalHome({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; photoFailures?: string }>;
+  searchParams: Promise<{ saved?: string; photoFailures?: string; page?: string }>;
 }) {
   const shop = await requireMyShop();
-  const { saved, photoFailures } = await searchParams;
+  const { saved, photoFailures, page: pageParam } = await searchParams;
+  const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
+  const from = (page - 1) * PAGE_SIZE;
   const supabase = await createClient();
 
-  const { data: items, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("items")
     .select("id, title, metal, karat, gross_weight_g, created_at, item_huids (huid), documents (storage_path, kind), passports (status)")
     .eq("shop_id", shop.id)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .order("id")
+    // One extra row tells us whether there is a next page.
+    .range(from, from + PAGE_SIZE);
   if (error) throw error;
+  const hasNext = (rows?.length ?? 0) > PAGE_SIZE;
+  const items = rows?.slice(0, PAGE_SIZE);
 
   // One thumbnail per item, via short-lived signed URLs (the bucket is private).
   const firstPhotos = (items ?? [])
@@ -60,7 +67,7 @@ export default async function PortalHome({
 
       {!items?.length ? (
         <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-zinc-500 dark:border-zinc-700">
-          No items yet. Add your first piece to start issuing passports.
+          {page === 1 ? "No items yet. Add your first piece to start issuing passports." : "No more items."}
         </p>
       ) : (
         <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
@@ -90,6 +97,18 @@ export default async function PortalHome({
             );
           })}
         </ul>
+      )}
+
+      {(page > 1 || hasNext) && (
+        <nav className="flex items-center justify-between text-sm" aria-label="Pages">
+          {page > 1 ? (
+            <Link href={page === 2 ? "/portal" : `/portal?page=${page - 1}`} className="hover:underline">← Newer</Link>
+          ) : <span />}
+          <span className="text-zinc-500">Page {page}</span>
+          {hasNext ? (
+            <Link href={`/portal?page=${page + 1}`} className="hover:underline">Older →</Link>
+          ) : <span />}
+        </nav>
       )}
     </div>
   );
