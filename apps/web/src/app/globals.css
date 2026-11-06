@@ -1,26 +1,253 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * GemLedger theme: deep emerald and near-black grounds, champagne-gold accents,
+ * an elegant serif for headings and a clean sans for everything else.
+ *
+ * On screen the whole app uses the dark luxury palette, so every `dark:` class
+ * applies. Printing falls back to the light classes, so printed QR cards and
+ * passports stay black on white.
+ */
+@custom-variant dark {
+  @media screen {
+    @slot;
+  }
+}
+
+@theme {
+  /* Green-tinted neutrals replace Tailwind's zinc, so existing `zinc-*` classes pick up the theme. */
+  --color-zinc-50: #f8f6ef;
+  --color-zinc-100: #efe8d6;
+  --color-zinc-200: #ddd9cc;
+  --color-zinc-300: #c3c6ba;
+  --color-zinc-400: #aeb7ad;
+  --color-zinc-500: #93a097;
+  --color-zinc-600: #56655c;
+  --color-zinc-700: #3a5045;
+  --color-zinc-800: #2c3c2e;
+  --color-zinc-900: #0e2119;
+  --color-zinc-950: #07130e;
+
+  /* Champagne gold. `amber-*` is mapped onto the same scale so notices match. */
+  --color-gold-50: #fbf7ec;
+  --color-gold-100: #f4ead2;
+  --color-gold-200: #ecdcb2;
+  --color-gold-300: #e2c98f;
+  --color-gold-400: #d6b571;
+  --color-gold-500: #c49d52;
+  --color-gold-600: #a98440;
+  --color-gold-700: #8a6a33;
+  --color-gold-800: #6b522a;
+  --color-gold-900: #4a3a20;
+  --color-gold-950: #2a2213;
+  --color-amber-50: var(--color-gold-50);
+  --color-amber-100: var(--color-gold-100);
+  --color-amber-200: var(--color-gold-200);
+  --color-amber-300: var(--color-gold-300);
+  --color-amber-400: var(--color-gold-400);
+  --color-amber-500: var(--color-gold-500);
+  --color-amber-600: var(--color-gold-600);
+  --color-amber-700: var(--color-gold-700);
+  --color-amber-800: var(--color-gold-800);
+  --color-amber-900: var(--color-gold-900);
+  --color-amber-950: var(--color-gold-950);
+
+  /* Deep emerald for highlighted surfaces. */
+  --color-emerald-deep: #0b2a1f;
+  --color-emerald-glow: #144634;
+
+  /* Finer, jeweller-style corners. Pills (rounded-full) are unchanged. */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.375rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+:root {
+  --background: #ffffff;
+  --foreground: #13201a;
+}
+
+/* Muted text is tuned for the dark screen; darken it for paper. */
+@media print {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-zinc-500: #5f6b64;
+  }
+}
+
+@media screen {
+  :root {
+    color-scheme: dark;
+    --background: var(--color-zinc-950);
+    --foreground: #f1ede3;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+@media screen {
+  body {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(70rem 36rem at 85% -12rem, rgb(20 70 52 / 0.55), transparent 70%),
+      radial-gradient(50rem 30rem at -10% 100vh, rgb(14 49 36 / 0.45), transparent 70%);
+    background-repeat: no-repeat;
+  }
+
+  ::selection {
+    background: rgb(214 181 113 / 0.35);
+  }
+}
+
+/*
+ * Headings use the display serif. These rules sit outside Tailwind's layers on
+ * purpose, so they also override the `font-semibold` on existing headings.
+ * font-size-adjust evens out the serif's small x-height against the sans.
+ */
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-size-adjust: 0.47;
+}
+
+/* Wordmark in the portal and admin headers. */
+.brand {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size-adjust: 0.47;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-gold-700);
+
+  @media (width >= 40rem) {
+    letter-spacing: 0.22em;
+  }
+}
+
+.brand > span {
+  font-family: var(--font-sans);
+  font-size-adjust: none;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@media screen {
+  .brand {
+    color: var(--color-gold-400);
+  }
+}
+
+/* Small uppercase label above a heading. */
+@utility eyebrow {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-gold-700);
+
+  @media screen {
+    color: var(--color-gold-400);
+  }
+}
+
+/* Thin gold outline button: the main call to action. */
+@utility btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-gold-700);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold-800);
+  transition:
+    background-color 150ms,
+    color 150ms,
+    border-color 150ms;
+
+  @media screen {
+    border-color: var(--color-gold-400);
+    color: var(--color-gold-300);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-gold-400);
+    border-color: var(--color-gold-400);
+    color: var(--color-zinc-950);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-gold-300);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+/* Quieter outline button for secondary actions. */
+@utility btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-zinc-300);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+
+  @media screen {
+    border-color: var(--color-zinc-700);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-gold-400);
+    background-color: rgb(214 181 113 / 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-gold-300);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+/* Gold text link. */
+@utility link-gold {
+  color: var(--color-gold-700);
+  text-underline-offset: 3px;
+
+  @media screen {
+    color: var(--color-gold-300);
+  }
+
+  &:hover {
+    text-decoration-line: underline;
+  }
 }
