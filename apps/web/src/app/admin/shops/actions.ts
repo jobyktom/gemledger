@@ -17,5 +17,5 @@ export async function setShopStatus(form: FormData) {
   // The database also enforces this: only platform admins may change status.
   const { error } = await supabase.from("shops").update({ status }).eq("id", shopId);
   if (error) throw error;
-  revalidatePath("/admin/shops");
+  revalidatePath("/admin", "layout");
 }
