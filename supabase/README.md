@@ -22,6 +22,23 @@ in `20261106130000_admin_dashboard.sql`, read-only access for those admins to ev
 plus the dashboard functions `admin_shop_stats()`, `admin_weekly_passports()` and
 `admin_shop_members()`. Admins can read everything but still only change a shop's status.
 
+`20261106140000_staff_management.sql` adds staff management:
+
+- `shop_members.status` (`active`, `suspended`, `removed`) and `display_name`. Rows are never
+  deleted, so work done by someone who left still points at a named record. Membership checks
+  now require an active member of a shop that isn't suspended.
+- `shop_invites`: a shop admin invites a person by exact mobile number or email. It is accepted
+  only by a user who has verified that number or email in Supabase Auth, and expires in 7 days.
+  Invites that grant the shop admin role (`owner`) are never auto-accepted.
+- `staff_activity_log`: every staff change. Append-only, even for the database owner.
+- Functions `staff_invite`, `staff_rename`, `staff_change_role`, `staff_offer_admin`,
+  `staff_set_status`, `staff_change_login`, `staff_cancel_invite`, `staff_list`,
+  `accept_staff_invites`, `accept_staff_invite`, `my_pending_invites`, and for GemLedger admins
+  `admin_invite_shop_admin` (recovery) and `admin_set_member_status`. The old "owners manage
+  staff" policy is gone; these functions are the only way to change staff.
+- Sensitive actions (adding or removing a shop admin, changing someone's sign-in, recovery)
+  need a sign-in code entered in the last 10 minutes, read from the token's `amr` claim.
+
 Row-level security is on for every table: a user only sees rows for shops they belong to.
 Shops can record lab reports as `uploaded` but cannot mark them `lab_matched`; only the
 server-side lab connector can.
@@ -29,11 +46,14 @@ server-side lab connector can.
 ## Tests
 
 `tests/rls_test.sql` checks tenant isolation, shop approval, self-verification and the public
-verify function. It runs inside a transaction and rolls back. Run it against a local or branch
+verify function. `tests/staff_test.sql` checks staff management, including the abuse cases
+(staff promoting themselves, one shop touching another's staff, removing the last admin,
+expired or unverified invites, editing the activity log). It runs inside a transaction and rolls back. Run it against a local or branch
 database (never production):
 
 ```bash
 psql "$DATABASE_URL" -f supabase/tests/rls_test.sql
+psql "$DATABASE_URL" -f supabase/tests/staff_test.sql
 ```
 
 ## Phone sign-in (one-time setup in the dashboard)

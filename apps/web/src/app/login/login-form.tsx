@@ -33,7 +33,11 @@ export function LoginForm() {
   const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>(
-    params.get("error") === "link" ? "That sign-in link has already been used or has expired. Request a new one, then open the newest email only." : undefined,
+    params.get("error") === "link"
+      ? "That sign-in link has already been used or has expired. Request a new one, then open the newest email only."
+      : params.get("error") === "expired"
+        ? "For security, staff sign in again every 12 hours. Please sign in."
+        : undefined,
   );
   const [busy, setBusy] = useState(false);
 

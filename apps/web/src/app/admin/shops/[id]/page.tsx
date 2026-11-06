@@ -3,6 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { inviteShopAdmin, setMemberStatus } from "./staff-actions";
+import { ActionForm } from "@/app/portal/staff/action-form";
+import { ContactFields } from "@/app/portal/staff/forms";
+import { Field, Input } from "@/components/ui";
 import { ShopStatusButtons, StatTile, StatusBadge, WeeklyChart, claimRate, dateFmt } from "../../shared";
 
 export const metadata: Metadata = { title: "Shop · GemLedger admin" };
@@ -81,18 +85,45 @@ export default async function AdminShopPage({
       <WeeklyChart weeks={(weeksRes.data ?? []).map((w) => ({ ...w, issued: Number(w.issued), claimed: Number(w.claimed) }))} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">People ({members.length})</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-medium">People ({members.filter((m) => m.status !== "removed").length})</h2>
+          <Link href={`/admin/shops/${shop.id}/staff-activity`} className="text-sm text-zinc-500 hover:underline">Staff activity log</Link>
+        </div>
         <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 text-sm dark:divide-zinc-800 dark:border-zinc-800">
           {members.map((m) => (
-            <li key={m.user_id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
-              <span className="font-medium">{m.email ?? (m.phone ? `+${m.phone}` : "No contact")}</span>
-              <span className="capitalize text-zinc-500">{m.role}</span>
+            <li key={m.user_id} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 ${m.status === "removed" ? "opacity-60" : ""}`}>
+              <span className="flex flex-col">
+                <span className="font-medium">{m.display_name ?? m.email ?? (m.phone ? `+${m.phone}` : "No contact")}</span>
+                {m.display_name && <span className="text-xs text-zinc-500">{m.email ?? (m.phone ? `+${m.phone}` : "")}</span>}
+              </span>
+              <span className="text-zinc-500">{m.role === "owner" ? "Shop admin" : m.role === "manager" ? "Manager" : "Staff"}</span>
+              {m.status !== "active" && <span className="text-xs capitalize text-red-700 dark:text-red-300">{m.status}</span>}
               <span className="ml-auto text-xs text-zinc-500">
                 Last sign-in {m.last_sign_in_at ? dateFmt.format(new Date(m.last_sign_in_at)) : "never"}
               </span>
+              {m.status !== "removed" && (
+                <ActionForm
+                  action={setMemberStatus}
+                  submit={m.status === "active" ? "Suspend" : "Reactivate"}
+                  variant="secondary"
+                  hidden={{ shopId: shop.id, userId: m.user_id, status: m.status === "active" ? "suspended" : "active" }}
+                  confirm={m.status === "active" ? "Suspend this person at this shop? Use only in an emergency; it is logged." : undefined}
+                />
+              )}
             </li>
           ))}
         </ul>
+        <details className="rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800">
+          <summary className="cursor-pointer font-medium">Recover access: invite a new shop admin</summary>
+          <p className="my-3 text-zinc-600 dark:text-zinc-400">
+            Only when the shop&apos;s admin has lost access. Check who you&apos;re talking to first, for example by calling the
+            shop&apos;s registered number and matching its GSTIN. This is logged in the shop&apos;s activity log.
+          </p>
+          <ActionForm action={inviteShopAdmin} submit="Invite as shop admin" hidden={{ shopId: shop.id }}>
+            <Field label="Name"><Input name="name" maxLength={80} required /></Field>
+            <ContactFields />
+          </ActionForm>
+        </details>
       </section>
 
       <section className="flex flex-col gap-3">
