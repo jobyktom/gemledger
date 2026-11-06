@@ -9,7 +9,7 @@ import { ROLE_LABEL, STATUS_LABEL, formatContact, personName } from "./shared";
 
 export const metadata: Metadata = { title: "Staff · GemLedger" };
 
-const dateFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const dateFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
 export default async function StaffPage({ searchParams }: { searchParams: Promise<{ removed?: string }> }) {
   const shop = await requireMyShop();

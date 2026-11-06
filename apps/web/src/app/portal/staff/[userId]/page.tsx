@@ -13,7 +13,7 @@ import { ROLE_LABEL, STATUS_LABEL, formatContact, personName } from "../shared";
 
 export const metadata: Metadata = { title: "Staff member · GemLedger" };
 
-const dateFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const dateFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
 function daysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
