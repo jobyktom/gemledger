@@ -17,6 +17,11 @@ SQL files in `migrations/` are applied in name order. The first one creates:
   shop, item basics, HUIDs and report statuses, never price or owner.
 - A private `item-files` storage bucket; files live under `<shop_id>/<item_id>/…`.
 
+Later migrations add `platform_admins` (GemLedger staff, added by hand in the SQL editor) and,
+in `20261106130000_admin_dashboard.sql`, read-only access for those admins to every shop's data
+plus the dashboard functions `admin_shop_stats()`, `admin_weekly_passports()` and
+`admin_shop_members()`. Admins can read everything but still only change a shop's status.
+
 Row-level security is on for every table: a user only sees rows for shops they belong to.
 Shops can record lab reports as `uploaded` but cannot mark them `lab_matched`; only the
 server-side lab connector can.
