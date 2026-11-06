@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { publicUrl } from "@/lib/public-origin";
 
 /**
  * Refreshes the Supabase session cookie on every request and keeps signed-out
@@ -10,7 +11,7 @@ export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/callback";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(publicUrl(request, url));
   }
 
   let response = NextResponse.next({ request });
@@ -38,7 +39,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(publicUrl(request, url));
   }
   return response;
 }
