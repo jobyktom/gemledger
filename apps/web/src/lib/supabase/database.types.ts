@@ -328,6 +328,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_shop_members: {
+        Args: { p_shop: string }
+        Returns: {
+          email: string | null
+          joined_at: string
+          last_sign_in_at: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["shop_role"]
+          user_id: string
+        }[]
+      }
+      admin_shop_stats: {
+        Args: never
+        Returns: {
+          city: string
+          created_at: string
+          gstin: string | null
+          issued_this_month: number
+          items: number
+          last_activity_at: string
+          members: number
+          name: string
+          passports_claimed: number
+          passports_issued: number
+          passports_revoked: number
+          phone: string | null
+          shop_id: string
+          state: string
+          status: Database["public"]["Enums"]["shop_status"]
+        }[]
+      }
+      admin_weekly_passports: {
+        Args: { p_shop?: string; p_weeks?: number }
+        Returns: { claimed: number; issued: number; week_start: string }[]
+      }
       am_platform_admin: { Args: never; Returns: boolean }
       create_item: {
         Args: {

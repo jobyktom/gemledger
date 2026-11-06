@@ -101,9 +101,36 @@ do $$ begin
     raise exception 'FAIL: admin cannot see pending shop'; end if;
 end $$;
 update public.shops set status = 'approved' where id = '11111111-0000-0000-0000-000000000001';
--- Admin rights are for reviewing shops only, not reading their stock.
+-- Admins read every shop's data from their dashboard, without joining the shop.
+do $$
+declare r record;
+begin
+  if (select count(*) from public.items) <> 2 or not exists (select 1 from public.item_huids)
+     or not exists (select 1 from public.grading_reports) or not exists (select 1 from public.shop_members) then
+    raise exception 'FAIL: admin cannot read shop data'; end if;
+  select * into r from public.admin_shop_stats() where shop_id = '11111111-0000-0000-0000-000000000001';
+  if r.items <> 2 or r.members <> 1 or r.passports_issued <> 0 then
+    raise exception 'FAIL: admin_shop_stats wrong: %', row_to_json(r); end if;
+  if (select count(*) from public.admin_shop_members('11111111-0000-0000-0000-000000000001')) <> 1 then
+    raise exception 'FAIL: admin_shop_members wrong'; end if;
+  if (select count(*) from public.admin_weekly_passports(12)) <> 12 then
+    raise exception 'FAIL: admin_weekly_passports wrong'; end if;
+end $$;
+-- ...but reading is all: an admin cannot add stock or issue passports for a shop.
 do $$ begin
-  if exists (select 1 from public.items) then raise exception 'FAIL: admin can read shop items'; end if;
+  begin
+    insert into public.items (shop_id, title, metal, karat, gross_weight_g)
+    values ('11111111-0000-0000-0000-000000000001', 'Admin ring', 'gold', 22, 5);
+    raise exception 'FAIL: admin wrote an item';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.passports (item_id, shop_id, public_id)
+    values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'BBBBBBBBBBBBBBBBBBBBBB');
+    raise exception 'FAIL: admin issued a passport';
+  exception when insufficient_privilege then null;
+  end;
+  if exists (select 1 from public.items where title = 'Admin ring') then raise exception 'FAIL: admin item left'; end if;
 end $$;
 reset role;
 delete from private.platform_admins;
@@ -125,6 +152,20 @@ do $$ begin
     insert into public.items (shop_id, title, metal, karat, gross_weight_g)
     values ('11111111-0000-0000-0000-000000000001', 'Fake ring', 'gold', 22, 5);
     raise exception 'FAIL: outsider wrote into another shop';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- Non-admins cannot use the admin statistics.
+do $$ begin
+  begin
+    perform public.admin_shop_stats();
+    raise exception 'FAIL: non-admin read platform stats';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.admin_shop_members('11111111-0000-0000-0000-000000000001');
+    raise exception 'FAIL: non-admin read shop members';
   exception when insufficient_privilege then null;
   end;
 end $$;
