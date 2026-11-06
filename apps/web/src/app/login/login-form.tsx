@@ -22,7 +22,7 @@ export function LoginForm() {
   const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>(
-    params.get("error") === "link" ? "That sign-in link has expired or was opened in another browser. Request a new one." : undefined,
+    params.get("error") === "link" ? "That sign-in link has already been used or has expired. Request a new one, then open the newest email only." : undefined,
   );
   const [busy, setBusy] = useState(false);
 
@@ -125,7 +125,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-4">
         <p>
           We sent a sign-in link to <strong>{sentTo}</strong>. Open it on this device, in this browser, to finish signing
-          in. The link works once and expires in an hour.
+          in. The link works once and expires in an hour. Each new request cancels the links sent before it.
         </p>
         <p className="text-sm text-zinc-500">No email? Check your spam folder, or wait a minute and try again.</p>
         <Button type="button" variant="secondary" onClick={() => { setStep("address"); setError(undefined); }}>
