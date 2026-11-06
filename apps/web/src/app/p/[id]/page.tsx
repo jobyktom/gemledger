@@ -42,7 +42,7 @@ export default async function PublicPassportPage({ params }: { params: Promise<{
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-1">
-        <p className="text-sm uppercase tracking-wide text-zinc-500">GemLedger digital passport</p>
+        <p className="eyebrow">GemLedger digital passport</p>
         <h1 className="text-2xl font-semibold">{passport.item_title}</h1>
         <p className="text-zinc-600 dark:text-zinc-400">
           Issued by {passport.shop_name}, {passport.shop_city} on {dateFmt.format(new Date(passport.issued_at))}

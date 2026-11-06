@@ -85,7 +85,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
             </div>
             <div className="flex flex-col gap-2 text-sm print:hidden">
               <p>Issued {new Date(passport.issued_at).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {passport.status}</p>
-              <a href={passportUrl} target="_blank" className="break-all text-amber-700 hover:underline">{passportUrl}</a>
+              <a href={passportUrl} target="_blank" className="break-all link-gold">{passportUrl}</a>
               <PrintButton />
             </div>
           </div>

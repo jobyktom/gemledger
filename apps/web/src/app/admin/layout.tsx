@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="flex flex-1 flex-col">
       <header className="border-b border-zinc-200 dark:border-zinc-800">
         <nav className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm">
-          <Link href="/admin" className="text-base font-semibold">
+          <Link href="/admin" className="brand text-base">
             GemLedger <span className="font-normal text-zinc-500">admin</span>
           </Link>
           <Link href="/admin" className="hover:underline">Dashboard</Link>

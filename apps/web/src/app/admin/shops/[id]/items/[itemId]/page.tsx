@@ -89,7 +89,7 @@ export default async function AdminItemPage({ params }: { params: Promise<{ id: 
               const url = urlFor.get(d.storage_path);
               return (
                 <li key={d.storage_path}>
-                  {url ? <a href={url} target="_blank" className="text-amber-700 hover:underline">{KIND_LABEL[d.kind] ?? d.kind}</a> : KIND_LABEL[d.kind] ?? d.kind}
+                  {url ? <a href={url} target="_blank" className="link-gold">{KIND_LABEL[d.kind] ?? d.kind}</a> : KIND_LABEL[d.kind] ?? d.kind}
                   <span className="text-zinc-500"> · {dateFmt.format(new Date(d.created_at))}</span>
                 </li>
               );
@@ -112,7 +112,7 @@ export default async function AdminItemPage({ params }: { params: Promise<{ id: 
                   {p.claimed_at && ` · claimed ${dateFmt.format(new Date(p.claimed_at))}`}
                   {p.revoked_at && ` · revoked ${dateFmt.format(new Date(p.revoked_at))}`}
                 </p>
-                <Link href={`/p/${p.public_id}`} target="_blank" className="text-amber-700 hover:underline">Open public passport page</Link>
+                <Link href={`/p/${p.public_id}`} target="_blank" className="link-gold">Open public passport page</Link>
               </li>
             ))}
           </ul>

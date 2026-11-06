@@ -26,7 +26,7 @@ export function ShopStatusButtons({ shopId, status }: { shopId: string; status: 
         <button
           name="status"
           value="suspended"
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          className="btn-quiet px-3 py-1.5 text-sm"
         >
           Suspend
         </button>
@@ -58,7 +58,7 @@ export function WeeklyChart({ weeks }: { weeks: { week_start: string; issued: nu
       <div className="flex h-32 items-end gap-1" role="img" aria-label={`Passports issued per week: ${weeks.map((w) => w.issued).join(", ")}`}>
         {weeks.map((w) => (
           <div key={w.week_start} className="flex h-full flex-1 flex-col justify-end" title={`Week of ${weekLabel(w.week_start)}: ${w.issued} issued, ${w.claimed} claimed`}>
-            <div className="rounded-t bg-amber-600" style={{ height: `${(w.issued / max) * 100}%`, minHeight: w.issued ? 4 : 1 }} />
+            <div className="rounded-t bg-gold-600 dark:bg-gold-400" style={{ height: `${(w.issued / max) * 100}%`, minHeight: w.issued ? 4 : 1 }} />
           </div>
         ))}
       </div>

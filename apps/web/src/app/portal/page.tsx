@@ -60,7 +60,7 @@ export default async function PortalHome({
 
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Items</h1>
-        <Link href="/portal/items/new" className="rounded-lg bg-amber-700 px-4 py-2.5 font-medium text-white hover:bg-amber-800">
+        <Link href="/portal/items/new" className="btn-gold">
           Add item
         </Link>
       </div>
