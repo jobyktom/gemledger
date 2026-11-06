@@ -56,6 +56,60 @@ Hostinger dashboards, not code.
 - [ ] **Run Supabase's security and performance advisors** (Database → Advisors) and fix
   anything flagged.
 
+## Apple Wallet and Google Wallet passes
+
+The "Add to Apple Wallet" and "Add to Google Wallet" buttons on passport pages stay hidden until
+these steps are done. Each wallet switches on by itself once its settings are in Hostinger.
+
+- [ ] **Apply the wallet database change.** Run `supabase/migrations/20261106150000_wallet_passes.sql`
+  on the live Supabase project (Claude can do this). Apple Wallet won't work without it.
+
+**Apple Wallet** (US$99 a year)
+
+- [ ] **Join the Apple Developer Program** at developer.apple.com/programs. Enrolling as a
+  company shows the business name, not your own, and needs a free D-U-N-S number (allow one to
+  two weeks for it).
+- [ ] **Create a Pass Type ID.** In Certificates, Identifiers & Profiles → Identifiers → "+" →
+  Pass Type IDs, enter a description ("GemLedger passport") and an identifier such as
+  `pass.com.vantalume.gemledger`.
+- [ ] **Create its certificate.** Open the Pass Type ID → Create Certificate. Apple asks for a
+  certificate signing request (CSR); on Windows, ask Claude to make one with you. Download the
+  `.cer`, then turn it into a `.p12` file with a password (Claude can help with this step too).
+- [ ] **Download Apple's WWDR G4 certificate** (`AppleWWDRCAG4.cer`) from
+  apple.com/certificateauthority.
+- [ ] **Add the Apple settings in Hostinger**, then redeploy:
+  - `APPLE_WALLET_CERT_P12`: the `.p12` file as base64 text
+  - `APPLE_WALLET_CERT_PASSWORD`: its password
+  - `APPLE_WALLET_WWDR_CERT`: the WWDR `.cer` file as base64 text
+- [ ] **Diary a yearly renewal.** The Pass Type ID certificate expires after about a year. When
+  it expires, the Apple button disappears until a new `.p12` is added. Passes already on phones
+  keep working, but stop updating.
+
+**Google Wallet** (free)
+
+- [ ] **Create a Google Wallet issuer account** in the Google Pay & Wallet Console
+  (pay.google.com/business/console) → Google Wallet API. Note the **Issuer ID**.
+- [ ] **Create a service account.** In Google Cloud Console, create a project, enable the
+  "Google Wallet API", then IAM → Service accounts → create one and add a JSON key. Download
+  the key file and keep it private.
+- [ ] **Give the service account access.** In the Wallet console → Users, invite the service
+  account's email address as a Developer.
+- [ ] **Add the Google settings in Hostinger**, then redeploy:
+  - `GOOGLE_WALLET_ISSUER_ID`: the Issuer ID
+  - `GOOGLE_WALLET_SERVICE_ACCOUNT`: the whole JSON key file (or the file as base64 text)
+- [ ] **Test, then ask Google to publish.** Until Google approves the issuer account, only
+  test accounts added in the console can save cards. Once a test card looks right, request
+  publishing access in the console.
+
+**Both**
+
+- [ ] **Swap in the official badges.** Apple and Google require their own "Add to Apple Wallet"
+  and "Add to Google Wallet" badge artwork. Download them from Apple's Wallet marketing
+  guidelines and Google's brand guidelines and replace the placeholder buttons
+  (`apps/web/src/app/p/[id]/wallet-buttons.tsx`).
+- [ ] **Try it on real phones**: add a passport on an iPhone and an Android phone, then check
+  the card shows the right item, QR code and shop, and opens the live passport when tapped.
+
 ## Product and legal
 
 - [ ] **Be clear about what "verified" means.** Lab checks (GIA, IGI, HRD) aren't connected yet,

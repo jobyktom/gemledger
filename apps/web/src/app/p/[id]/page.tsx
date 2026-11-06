@@ -1,27 +1,10 @@
-import { PublicPassportId, VerificationStatus, verificationLabels } from "@gemledger/shared";
+import { verificationLabels } from "@gemledger/shared";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
-import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
-
-const Report = z.object({
-  lab: z.string(),
-  report_number: z.string(),
-  status: VerificationStatus,
-  checked_at: z.string().nullable(),
-});
-
-// Only what get_public_passport exposes: never price, owner or documents.
-const loadPassport = cache(async (id: string) => {
-  if (!PublicPassportId.safeParse(id).success) return null;
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_public_passport", { p_public_id: id });
-  if (error) throw new Error("Could not load passport");
-  const row = data?.[0];
-  if (!row) return null;
-  return { ...row, reports: z.array(Report).catch([]).parse(row.reports) };
-});
+import { loadPublicPassport as loadPassport } from "@/lib/passport";
+import { dateFmt, metalLabel } from "@/lib/passport-text";
+import { walletAvailability } from "@/lib/wallet/config";
+import { WalletButtons } from "./wallet-buttons";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const passport = await loadPassport((await params).id);
@@ -31,13 +14,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-const metalLabel: Record<string, string> = { gold: "Gold", silver: "Silver", platinum: "Platinum", other: "Other" };
-const dateFmt = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" });
-
 export default async function PublicPassportPage({ params }: { params: Promise<{ id: string }> }) {
   const passport = await loadPassport((await params).id);
   if (!passport) notFound();
   const revoked = passport.status === "revoked";
+  const wallet = walletAvailability();
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
@@ -86,6 +67,8 @@ export default async function PublicPassportPage({ params }: { params: Promise<{
           </ul>
         </section>
       )}
+
+      {!revoked && <WalletButtons publicId={passport.public_id} {...wallet} />}
 
       <p className="text-sm text-zinc-500">
         HUID numbers can be checked independently in the BIS CARE app. GemLedger shows what the jeweller recorded and
