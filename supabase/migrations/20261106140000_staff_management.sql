@@ -29,7 +29,24 @@ alter table public.shop_members
 drop policy "owners manage staff" on public.shop_members;
 revoke insert, update, delete, truncate on public.shop_members from anon, authenticated;
 
--- Membership now means: an ACTIVE member of a shop that is not suspended.
+-- True when the caller entered a sign-in code (or opened a sign-in link)
+-- within the last p_seconds. Supabase records this in the token's amr claim,
+-- and it does not change when the token is refreshed.
+create function private.verified_recently(p_seconds integer default 600)
+returns boolean
+language sql stable set search_path = ''
+as $$
+  select coalesce(
+    (select max((a ->> 'timestamp')::bigint)
+       from jsonb_array_elements(coalesce(auth.jwt() -> 'amr', '[]'::jsonb)) as a),
+    0) >= extract(epoch from now())::bigint - p_seconds;
+$$;
+revoke execute on function private.verified_recently(integer) from public, anon;
+grant execute on function private.verified_recently(integer) to authenticated;
+
+-- Membership now means: an ACTIVE member of a shop that is not suspended,
+-- and, for staff and managers, signed in within the last 12 hours (shop
+-- counters are shared devices).
 -- Every existing policy (items, documents, passports, storage) calls this
 -- function by OID, so suspending or removing someone takes effect on their
 -- very next request.
@@ -45,6 +62,7 @@ as $$
       and m.user_id = (select auth.uid())
       and m.status = 'active'
       and s.status <> 'suspended'
+      and (m.role = 'owner' or private.verified_recently(43200))
       and (p_roles is null or m.role = any (p_roles))
   );
 $$;
@@ -70,21 +88,6 @@ create policy "members read their shop even when suspended" on public.shops for 
   using (private.is_active_member(id));
 create policy "people read their own memberships" on public.shop_members for select to authenticated
   using (user_id = (select auth.uid()));
-
--- True when the caller entered a sign-in code (or opened a sign-in link)
--- within the last p_seconds. Supabase records this in the token's amr claim,
--- and it does not change when the token is refreshed.
-create function private.verified_recently(p_seconds integer default 600)
-returns boolean
-language sql stable set search_path = ''
-as $$
-  select coalesce(
-    (select max((a ->> 'timestamp')::bigint)
-       from jsonb_array_elements(coalesce(auth.jwt() -> 'amr', '[]'::jsonb)) as a),
-    0) >= extract(epoch from now())::bigint - p_seconds;
-$$;
-revoke execute on function private.verified_recently(integer) from public, anon;
-grant execute on function private.verified_recently(integer) to authenticated;
 
 create function private.require_recent_verification()
 returns void
@@ -280,6 +283,34 @@ as $$
 $$;
 revoke execute on function private.member_name(uuid, uuid) from public, anon, authenticated;
 
+-- The role an invite would actually grant. A login change carries the
+-- member's role at acceptance time (they may have been promoted since), and an
+-- admin offer always grants owner.
+create function private.effective_invite_role(p_invite public.shop_invites)
+returns public.shop_role
+language sql stable security definer set search_path = ''
+as $$
+  select case
+    when p_invite.for_user_id is not null then 'owner'::public.shop_role
+    when p_invite.replaces_user_id is not null then coalesce(
+      (select m.role from public.shop_members m
+        where m.shop_id = p_invite.shop_id and m.user_id = p_invite.replaces_user_id), p_invite.role)
+    else p_invite.role
+  end;
+$$;
+revoke execute on function private.effective_invite_role(public.shop_invites) from public, anon, authenticated;
+
+-- Serialises staff changes per shop, so two admins removing each other at
+-- the same moment can't leave a shop with no admin. Callers recheck their
+-- own membership after taking the lock.
+create function private.lock_shop(p_shop uuid)
+returns void
+language sql volatile security definer set search_path = ''
+as $$
+  select null::void from public.shops where id = p_shop for no key update;
+$$;
+revoke execute on function private.lock_shop(uuid) from public, anon, authenticated;
+
 -- Turns an accepted invite into a membership. The caller has already checked
 -- that p_user verified the invite's phone/email (or is its for_user_id).
 create function private.apply_invite(p_invite public.shop_invites, p_user uuid)
@@ -291,6 +322,7 @@ declare
   v_role public.shop_role := p_invite.role;
   v_name text := p_invite.display_name;
 begin
+  perform private.lock_shop(p_invite.shop_id);
   if p_invite.replaces_user_id is not null then
     select * into v_old from public.shop_members
       where shop_id = p_invite.shop_id and user_id = p_invite.replaces_user_id;
@@ -365,7 +397,7 @@ begin
   for v_inv in
     select i.* from private.my_open_invites() i
     join public.shops s on s.id = i.shop_id
-    where i.role <> 'owner' and s.status <> 'suspended'
+    where private.effective_invite_role(i) <> 'owner' and s.status <> 'suspended'
     order by i.created_at
   loop
     perform private.apply_invite(v_inv, auth.uid());
@@ -381,7 +413,7 @@ create function public.my_pending_invites()
 returns table (id uuid, shop_id uuid, shop_name text, role public.shop_role, invited_by_name text, expires_at timestamptz)
 language sql stable security definer set search_path = ''
 as $$
-  select i.id, i.shop_id, s.name, i.role,
+  select i.id, i.shop_id, s.name, private.effective_invite_role(i),
          case when i.by_platform_admin then 'GemLedger support' else private.member_name(i.shop_id, i.invited_by) end,
          i.expires_at
   from private.my_open_invites() i join public.shops s on s.id = i.shop_id
@@ -403,7 +435,7 @@ begin
   if (select status from public.shops where id = v_inv.shop_id) = 'suspended' then
     raise exception 'This shop is suspended';
   end if;
-  if v_inv.role = 'owner' then perform private.require_recent_verification(); end if;
+  if private.effective_invite_role(v_inv) = 'owner' then perform private.require_recent_verification(); end if;
   perform private.apply_invite(v_inv, auth.uid());
 end;
 $$;
@@ -444,6 +476,7 @@ declare
   v_existing uuid;
   v_id uuid;
 begin
+  perform private.lock_shop(p_shop);
   perform private.require_shop_admin(p_shop);
   if (select status from public.shops where id = p_shop) = 'suspended' then
     raise exception 'This shop is suspended, so it cannot add people';
@@ -500,11 +533,12 @@ $$;
 -- Loads the target membership for an admin action, with the shared checks.
 create function private.target_member(p_shop uuid, p_user uuid)
 returns public.shop_members
-language plpgsql stable security definer set search_path = ''
+language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   v_m public.shop_members;
 begin
+  perform private.lock_shop(p_shop);
   perform private.require_shop_admin(p_shop);
   select * into v_m from public.shop_members where shop_id = p_shop and user_id = p_user;
   if v_m.user_id is null or v_m.status = 'removed' then

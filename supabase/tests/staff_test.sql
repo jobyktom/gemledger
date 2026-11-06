@@ -13,6 +13,7 @@ insert into auth.users (id, phone, phone_confirmed_at, email, email_confirmed_at
   ('c0000000-0000-0000-0000-00000000000c', '919800000003', now(), null, null),
   ('d0000000-0000-0000-0000-00000000000d', '919800000004', now(), null, null),
   ('e0000000-0000-0000-0000-00000000000e', null, null, 'ravi@example.com', now()),
+  ('60000000-0000-0000-0000-000000000006', '919800000005', now(), null, null),
   ('f0000000-0000-0000-0000-00000000000f', '919800000002', null, null, null),
   ('90000000-0000-0000-0000-000000000009', null, null, 'ops@gemledger.test', now());
 insert into private.platform_admins (user_id) values ('90000000-0000-0000-0000-000000000009');
@@ -26,6 +27,17 @@ begin
     'sub', u, 'role', 'authenticated',
     'amr', json_build_array(json_build_object('method', 'otp',
       'timestamp', extract(epoch from now())::bigint - case when fresh then 5 else 7200 end)))::text, true);
+  execute 'set local role authenticated';
+end $$;
+
+-- Signs in as u with a sign-in code entered `secs` seconds ago.
+create function pg_temp.as_user_aged(u text, secs integer) returns void language plpgsql as $$
+begin
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object(
+    'sub', u, 'role', 'authenticated',
+    'amr', json_build_array(json_build_object('method', 'otp',
+      'timestamp', extract(epoch from now())::bigint - secs)))::text, true);
   execute 'set local role authenticated';
 end $$;
 
@@ -104,6 +116,14 @@ select pg_temp.check('staff see no contact details',
   (select bool_and(contact is null and last_sign_in_at is null) from public.staff_list('51000000-0000-0000-0000-000000000001')));
 select pg_temp.check('staff see no invites', (select count(*) from public.shop_invites) = 0);
 select pg_temp.check('staff see no activity log', (select count(*) from public.staff_activity_log) = 0);
+-- Staff sessions end after 12 hours, at the database too.
+select pg_temp.as_user_aged('b0000000-0000-0000-0000-00000000000b', 13 * 3600);
+select pg_temp.check('13-hour-old staff session reads no items', (select count(*) from public.items) = 0);
+select pg_temp.must_fail('13-hour-old staff session adds an item',
+  $$insert into public.items (shop_id, title, metal, karat, gross_weight_g) values ('51000000-0000-0000-0000-000000000001', 'Ring', 'gold', 22, 3)$$, '%row-level security%');
+select pg_temp.as_user_aged('a0000000-0000-0000-0000-00000000000a', 13 * 3600);
+select pg_temp.check('shop admins are not timed out', (select count(*) from public.items) = 1);
+select pg_temp.as_user('b0000000-0000-0000-0000-00000000000b');
 
 -- ------------------------------------------------ staff cannot escalate
 select pg_temp.must_fail('staff invites',
@@ -134,6 +154,8 @@ select pg_temp.must_fail('removing yourself (the last admin)',
 select pg_temp.must_fail('offering admin without a fresh code',
   $$select public.staff_offer_admin('51000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-00000000000b')$$, 'reauth_required');
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a', true);
+-- A login change requested while B is a manager...
+select public.staff_change_login('51000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-00000000000b', '9800000005', null);
 select public.staff_offer_admin('51000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-00000000000b');
 
 -- The offer is never accepted automatically, and needs B's own fresh code.
@@ -153,6 +175,14 @@ select pg_temp.as_user('b0000000-0000-0000-0000-00000000000b', true);
 select public.accept_staff_invite((select id from public.my_pending_invites()));
 select pg_temp.check('B is now an admin',
   (select role from public.shop_members where user_id = 'b0000000-0000-0000-0000-00000000000b') = 'owner');
+-- ...must not hand admin rights to the new number without Accept + fresh code.
+select pg_temp.as_user('60000000-0000-0000-0000-000000000006');
+select pg_temp.check('login change to an admin not auto-accepted', (select count(*) from public.accept_staff_invites()) = 0);
+select pg_temp.check('it waits as an admin invite', (select role from public.my_pending_invites()) = 'owner');
+select pg_temp.must_fail('accepting it without a fresh code',
+  $$select public.accept_staff_invite((select id from public.my_pending_invites()))$$, 'reauth_required');
+select pg_temp.as_user('b0000000-0000-0000-0000-00000000000b');
+select public.staff_cancel_invite((select id from public.shop_invites where phone = '919800000005'));
 
 -- Demoting an admin needs a fresh code; afterwards A can't manage staff.
 select pg_temp.as_user('b0000000-0000-0000-0000-00000000000b');
