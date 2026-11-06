@@ -12,7 +12,7 @@ export type ActivityEntry = {
   created_at: string;
 };
 
-const timeFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+const timeFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 function role(r: unknown): string {
   return typeof r === "string" && r in ROLE_LABEL ? ROLE_LABEL[r as Role].toLowerCase() : "";
