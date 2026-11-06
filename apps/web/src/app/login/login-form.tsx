@@ -10,6 +10,17 @@ import { createClient } from "@/lib/supabase/client";
 
 
 type Method = "phone" | "email";
+
+/**
+ * Pre-launch only: the test shop's number is filled in so testers can sign in
+ * quickly. Before going live, set NEXT_PUBLIC_LOGIN_PREFILL_PHONE to an empty
+ * value (or "off") and rebuild, or delete this constant.
+ */
+const PREFILL_PHONE = (() => {
+  const v = process.env.NEXT_PUBLIC_LOGIN_PREFILL_PHONE;
+  if (v === undefined) return "99999 00001";
+  return v === "off" ? "" : v;
+})();
 const EmailAddress = z.email("Enter a valid email address").transform((s) => s.trim().toLowerCase());
 
 export function LoginForm() {
@@ -17,7 +28,7 @@ export function LoginForm() {
   const params = useSearchParams();
   const [method, setMethod] = useState<Method>("phone");
   const [step, setStep] = useState<"address" | "code">("address");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(PREFILL_PHONE);
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
