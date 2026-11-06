@@ -577,6 +577,23 @@ export type Database = {
           status: Database["public"]["Enums"]["passport_status"]
         }[]
       }
+      wallet_apple_device_passes: {
+        Args: { p_device: string; p_since?: string }
+        Returns: { public_id: string; updated_at: string }[]
+      }
+      wallet_apple_push_tokens: { Args: { p_public_id: string }; Returns: { push_token: string }[] }
+      wallet_apple_register: {
+        Args: { p_device: string; p_public_id: string; p_push_token: string; p_token: string }
+        Returns: string
+      }
+      wallet_apple_unregister: {
+        Args: { p_device: string; p_public_id: string; p_token: string }
+        Returns: boolean
+      }
+      wallet_pass_meta: {
+        Args: { p_public_id: string }
+        Returns: { token: string; updated_at: string }[]
+      }
     }
     Enums: {
       document_kind:

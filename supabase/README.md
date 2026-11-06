@@ -54,6 +54,7 @@ database (never production):
 ```bash
 psql "$DATABASE_URL" -f supabase/tests/rls_test.sql
 psql "$DATABASE_URL" -f supabase/tests/staff_test.sql
+psql "$DATABASE_URL" -f supabase/tests/wallet_test.sql
 ```
 
 ## Phone sign-in (one-time setup in the dashboard)
@@ -82,3 +83,14 @@ Supabase locks the email templates until custom SMTP is set up, and the default
 Magic Link email has a link but no code. The login page therefore sends a sign-in
 link that lands on `/auth/callback`. Add `http://localhost:3000/**` (and the live
 domain later) under Authentication → URL Configuration → Redirect URLs.
+
+`20261106150000_wallet_passes.sql` adds Apple Wallet and Google Wallet support:
+
+- `private.wallet_tokens`: each pass's Apple authentication token, made on first use.
+- `private.wallet_apple_registrations`: which iPhones (Apple's anonymous device and push IDs)
+  hold which pass, so they can be told when it changes. No customer details.
+- `wallet_pass_meta`, `wallet_apple_register`, `wallet_apple_unregister` and
+  `wallet_apple_device_passes` back Apple's web service and are callable without signing in;
+  knowing a passport's public ID already lets anyone download its pass, so that is the boundary.
+  `wallet_apple_push_tokens` is only for the issuing shop's staff and GemLedger admins.
+- `tests/wallet_test.sql` checks all of this.
