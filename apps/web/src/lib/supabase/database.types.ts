@@ -258,25 +258,105 @@ export type Database = {
       shop_members: {
         Row: {
           created_at: string
+          display_name: string | null
+          invited_by: string | null
           role: Database["public"]["Enums"]["shop_role"]
           shop_id: string
+          status: Database["public"]["Enums"]["member_status"]
+          status_changed_at: string | null
+          status_changed_by: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
+          invited_by?: string | null
           role?: Database["public"]["Enums"]["shop_role"]
           shop_id: string
+          status?: Database["public"]["Enums"]["member_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          display_name?: string | null
+          invited_by?: string | null
           role?: Database["public"]["Enums"]["shop_role"]
           shop_id?: string
+          status?: Database["public"]["Enums"]["member_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "shop_members_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          by_platform_admin: boolean
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          expires_at: string
+          for_user_id: string | null
+          id: string
+          invited_by: string | null
+          phone: string | null
+          replaces_user_id: string | null
+          role: Database["public"]["Enums"]["shop_role"]
+          shop_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          by_platform_admin?: boolean
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          expires_at?: string
+          for_user_id?: string | null
+          id?: string
+          invited_by?: string | null
+          phone?: string | null
+          replaces_user_id?: string | null
+          role: Database["public"]["Enums"]["shop_role"]
+          shop_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          by_platform_admin?: boolean
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          expires_at?: string
+          for_user_id?: string | null
+          id?: string
+          invited_by?: string | null
+          phone?: string | null
+          replaces_user_id?: string | null
+          role?: Database["public"]["Enums"]["shop_role"]
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_invites_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shops"
@@ -323,6 +403,50 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          by_platform_admin: boolean
+          created_at: string
+          details: Json
+          id: number
+          shop_id: string
+          target_name: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          by_platform_admin?: boolean
+          created_at?: string
+          details?: Json
+          id?: number
+          shop_id: string
+          target_name?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          by_platform_admin?: boolean
+          created_at?: string
+          details?: Json
+          id?: number
+          shop_id?: string
+          target_name?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_activity_log_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -337,7 +461,22 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["shop_role"]
           user_id: string
+          display_name: string | null
+          status: Database["public"]["Enums"]["member_status"]
         }[]
+      }
+      accept_staff_invite: { Args: { p_invite: string }; Returns: undefined }
+      accept_staff_invites: {
+        Args: never
+        Returns: { role: Database["public"]["Enums"]["shop_role"]; shop_id: string; shop_name: string }[]
+      }
+      admin_invite_shop_admin: {
+        Args: { p_email: string | null; p_name: string; p_phone: string | null; p_shop: string }
+        Returns: string
+      }
+      admin_set_member_status: {
+        Args: { p_shop: string; p_status: Database["public"]["Enums"]["member_status"]; p_user: string }
+        Returns: undefined
       }
       admin_shop_stats: {
         Args: never
@@ -379,6 +518,49 @@ export type Database = {
         }
         Returns: string
       }
+      my_pending_invites: {
+        Args: never
+        Returns: {
+          expires_at: string
+          id: string
+          invited_by_name: string
+          role: Database["public"]["Enums"]["shop_role"]
+          shop_id: string
+          shop_name: string
+        }[]
+      }
+      staff_cancel_invite: { Args: { p_invite: string }; Returns: undefined }
+      staff_change_login: {
+        Args: { p_email: string | null; p_phone: string | null; p_shop: string; p_user: string }
+        Returns: string
+      }
+      staff_change_role: {
+        Args: { p_role: Database["public"]["Enums"]["shop_role"]; p_shop: string; p_user: string }
+        Returns: undefined
+      }
+      staff_invite: {
+        Args: { p_email: string | null; p_name: string; p_phone: string | null; p_role: Database["public"]["Enums"]["shop_role"]; p_shop: string }
+        Returns: string
+      }
+      staff_list: {
+        Args: { p_include_removed?: boolean; p_shop: string }
+        Returns: {
+          contact: string | null
+          display_name: string | null
+          is_me: boolean
+          joined_at: string
+          last_sign_in_at: string | null
+          role: Database["public"]["Enums"]["shop_role"]
+          status: Database["public"]["Enums"]["member_status"]
+          user_id: string
+        }[]
+      }
+      staff_offer_admin: { Args: { p_shop: string; p_user: string }; Returns: string }
+      staff_rename: { Args: { p_name: string; p_shop: string; p_user: string }; Returns: undefined }
+      staff_set_status: {
+        Args: { p_shop: string; p_status: Database["public"]["Enums"]["member_status"]; p_user: string }
+        Returns: undefined
+      }
       get_public_passport: {
         Args: { p_public_id: string }
         Returns: {
@@ -405,6 +587,7 @@ export type Database = {
         | "hallmark"
         | "other"
       grading_lab: "GIA" | "IGI" | "HRD" | "SGL" | "other"
+      member_status: "active" | "suspended" | "removed"
       metal: "gold" | "silver" | "platinum" | "other"
       passport_status: "issued" | "claimed" | "transferred" | "revoked"
       shop_role: "owner" | "manager" | "staff"
@@ -551,6 +734,7 @@ export const Constants = {
         "other",
       ],
       grading_lab: ["GIA", "IGI", "HRD", "SGL", "other"],
+      member_status: ["active", "suspended", "removed"],
       metal: ["gold", "silver", "platinum", "other"],
       passport_status: ["issued", "claimed", "transferred", "revoked"],
       shop_role: ["owner", "manager", "staff"],
