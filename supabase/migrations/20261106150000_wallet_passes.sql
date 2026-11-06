@@ -30,6 +30,32 @@ alter table private.wallet_tokens enable row level security;
 alter table private.wallet_apple_registrations enable row level security;
 revoke all on private.wallet_tokens, private.wallet_apple_registrations from public, anon, authenticated;
 
+-- A pass also shows the item's HUIDs and grading reports and the shop's name
+-- and city. Changing any of those marks the item as updated, so phones fetch
+-- a fresh pass.
+create function private.touch_item_for_wallet()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if tg_table_name = 'shops' then
+    update public.items i set updated_at = now() where i.shop_id = new.id;
+  else
+    if tg_op <> 'DELETE' then update public.items i set updated_at = now() where i.id = new.item_id; end if;
+    if tg_op <> 'INSERT' then update public.items i set updated_at = now() where i.id = old.item_id; end if;
+  end if;
+  return null;
+end;
+$$;
+revoke execute on function private.touch_item_for_wallet() from public, anon, authenticated;
+create trigger touch_item_for_wallet after insert or update or delete on public.item_huids
+  for each row execute function private.touch_item_for_wallet();
+create trigger touch_item_for_wallet after insert or update or delete on public.grading_reports
+  for each row execute function private.touch_item_for_wallet();
+create trigger touch_item_for_wallet after update of name, city on public.shops
+  for each row when (old.name is distinct from new.name or old.city is distinct from new.city)
+  execute function private.touch_item_for_wallet();
+
 -- When anything shown on the pass last changed. Wallet uses this to decide
 -- whether to download a fresh copy.
 create function private.wallet_pass_updated_at(p public.passports)

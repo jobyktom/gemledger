@@ -46,8 +46,8 @@ async function route(request: Request, ctx: Ctx) {
     const meta = await applePassMeta(serial);
     if (!meta) return status(404);
     if (!sameToken(request.headers.get("authorization"), meta.token)) return status(401);
-    const since = Date.parse(request.headers.get("if-modified-since") ?? "");
-    if (!Number.isNaN(since) && Math.floor(meta.updatedAt.getTime() / 1000) <= Math.floor(since / 1000)) return status(304);
+    // Always send the pass: If-Modified-Since only has whole seconds, so a 304 could hide a
+    // change made in the same second. Phones only ask after we tell them something changed.
     const passport = await loadPublicPassport(serial);
     const pass = passport && (await applePassFor(passport, creds));
     return pass ? pkpassResponse(pass) : status(404);
@@ -60,12 +60,14 @@ async function route(request: Request, ctx: Ctx) {
 
   if (path.length === 4 && method === "GET") {
     const tag = new URL(request.url).searchParams.get("passesUpdatedSince");
-    const since = tag && !Number.isNaN(Date.parse(tag)) ? new Date(tag).toISOString() : undefined;
+    // The tag is the database timestamp we sent as lastUpdated, passed back untouched: going
+    // through a JS Date would drop its microseconds and report unchanged passes as changed.
+    const since = tag && !Number.isNaN(Date.parse(tag)) ? tag : undefined;
     const { data, error } = await supabase.rpc("wallet_apple_device_passes", { p_device: device, p_since: since });
     if (error) return status(500);
     if (!data?.length) return status(204);
-    const lastUpdated = data.reduce((max, r) => (r.updated_at > max ? r.updated_at : max), data[0].updated_at);
-    return Response.json({ serialNumbers: data.map((r) => r.public_id), lastUpdated: new Date(lastUpdated).toISOString() });
+    const lastUpdated = data.reduce((max, r) => (Date.parse(r.updated_at) > Date.parse(max) ? r.updated_at : max), data[0].updated_at);
+    return Response.json({ serialNumbers: data.map((r) => r.public_id), lastUpdated });
   }
 
   if (path.length !== 5) return status(404);

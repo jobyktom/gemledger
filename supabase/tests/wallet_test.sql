@@ -85,6 +85,22 @@ do $$ begin
     raise exception 'FAIL: outsider read push tokens'; end if;
 end $$;
 
+-- A changed grading report or shop name also marks the pass as updated.
+reset role;
+update public.items set updated_at = now() - interval '1 hour' where id = '22222222-0000-0000-0000-000000000001';
+insert into public.grading_reports (item_id, shop_id, lab, report_number)
+values ('22222222-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'IGI', 'LG12345678');
+do $$ begin
+  if (select updated_at from public.items where id = '22222222-0000-0000-0000-000000000001') < now() then
+    raise exception 'FAIL: new grading report did not mark the pass updated'; end if;
+end $$;
+update public.items set updated_at = now() - interval '1 hour' where id = '22222222-0000-0000-0000-000000000001';
+update public.shops set name = 'Asha Gold' where id = '11111111-0000-0000-0000-000000000001';
+do $$ begin
+  if (select updated_at from public.items where id = '22222222-0000-0000-0000-000000000001') < now() then
+    raise exception 'FAIL: shop rename did not mark the pass updated'; end if;
+end $$;
+
 -- Revoking the passport marks it as updated for the device; unregistering removes it.
 reset role;
 update public.passports set status = 'revoked', revoked_at = now() + interval '2 minutes'
